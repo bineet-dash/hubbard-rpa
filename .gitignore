@@ -1,0 +1,9 @@
+*
+!*.cpp
+!*.hpp
+!*.md
+!.gitignore
+!*.sh
+!*.json
+!*/
+test*
