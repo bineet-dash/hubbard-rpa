@@ -26,6 +26,7 @@ inline double gs_energy(VectorXd hf_eivals) {return hf_eivals.block(0,0,hf_eival
 inline double gs_energy(vector<double> v) {return accumulate(v.begin(), v.begin()+v.size()/2, 0.00);}
 inline cd filter_cd(cd x){return (abs(x)<1e-4)?0.0:x;}
 inline double filter_d(double x) {return (abs(x)<1e-4)?0.0:x;}
+inline double filter_tol_d(double x, double tolerance=1e-4) {return (abs(x)<tolerance)?0.0:x;}
 inline double fermi_fn(double e_minus_mu, double T) {return (isinf(exp(e_minus_mu/T)))? 0: 1/(exp(e_minus_mu/T)+1);}
 
 
