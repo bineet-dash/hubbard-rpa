@@ -1,4 +1,4 @@
-#include "rpa.hpp"
+#include "alhassid_rpa.hpp"
 #include <cstring>
 #include <chrono>
 #include <cstdlib>
@@ -9,6 +9,7 @@ int L=4;
 MatrixXd sigma;
 
 using namespace std::chrono;
+typedef pair <double,double> pdd;
 
 void greens_sigma_generate(MatrixXd& suggested_sigma, int lattice_index, long & idum)
 {
@@ -35,10 +36,13 @@ int main(int argc, char* argv[])
   for(int i=0; i<L; i++)  greens_sigma_generate(sigma, i, idum);
   MatrixXd suggested_sigma = sigma;
   MatrixXcd H0 = construct_h0();
+  MatrixXcd Id = MatrixXcd::Identity(2*L,2*L);
 
-  MatrixXcd H_spa = H0 - U_prime/2*matrixelement_sigmaz(sigma);
+  MatrixXcd H_spa = H0 - U_prime/2*matrixelement_sigmaz(sigma) + U_prime*L/4*Id;
   pair<MatrixXcd,VectorXd> spa_spectrum = Eigenspectrum(H_spa);
-  double free_energy = rpa_free_energy(spa_spectrum.second, spa_spectrum.first, final_temp);
+  pdd free_energies = get_free_energy_shortcut(spa_spectrum.first.real(), spa_spectrum.second, final_temp);
+
+  // cout << spa_spectrum.second.transpose() << endl << free_energies.first << endl; exit(1);
 
   string filename, latticedata;
   latticedata = "_U="+to_string(int(U_prime))+"_size="+to_string(L)+"_sweeps="+to_string(no_sweeps);
@@ -59,17 +63,17 @@ int main(int argc, char* argv[])
         for(int lattice_index=0; lattice_index<L; lattice_index++)
         {
           greens_sigma_generate(suggested_sigma,lattice_index, idum);
-          MatrixXcd suggested_Hspa = H0-U_prime/2*matrixelement_sigmaz(suggested_sigma);
+          MatrixXcd suggested_Hspa = H0-U_prime/2*matrixelement_sigmaz(suggested_sigma)+ U_prime*L/4*Id;
           pair<MatrixXcd,VectorXd> suggested_spa_spectrum = Eigenspectrum(suggested_Hspa);
-          double suggested_free_energy = rpa_free_energy(suggested_spa_spectrum.second, suggested_spa_spectrum.first, temperature); 
+          pdd suggested_free_energies = get_free_energy_shortcut(suggested_spa_spectrum.first.real(), suggested_spa_spectrum.second, temperature); 
 
-          double move_prob = exp(-(suggested_free_energy-free_energy)/temperature);
+          double move_prob = exp(-(suggested_free_energies.second-free_energies.second)/temperature);
           double uniform_rv = ran0(&idum);
 
           if(uniform_rv <= move_prob)
           {
             sigma = suggested_sigma;
-            free_energy = suggested_free_energy;
+            free_energies = suggested_free_energies;
           }
           else
           {
@@ -79,7 +83,8 @@ int main(int argc, char* argv[])
         cout << "\r sweep = " << sweep << " done."; cout.flush();
       }
 
-      double final_free_energy = 0.0;
+      double final_free_energy_rpa = 0.0;
+      double final_free_energy_spa = 0.0;
       double S_pi = 0.0;
 
       for(int sweep= N_therm; sweep<no_sweeps; sweep++)
@@ -87,17 +92,17 @@ int main(int argc, char* argv[])
         for(int lattice_index=0; lattice_index<L; lattice_index++)
         {
           greens_sigma_generate(suggested_sigma,lattice_index, idum);
-          MatrixXcd suggested_Hspa = H0-U_prime/2*matrixelement_sigmaz(suggested_sigma);
+          MatrixXcd suggested_Hspa = H0-U_prime/2*matrixelement_sigmaz(suggested_sigma)+ U_prime*L/4*Id;
           pair<MatrixXcd,VectorXd> suggested_spa_spectrum = Eigenspectrum(suggested_Hspa);
-          double suggested_free_energy = rpa_free_energy(suggested_spa_spectrum.second, suggested_spa_spectrum.first, temperature); 
+          pdd suggested_free_energies = get_free_energy_shortcut(suggested_spa_spectrum.first.real(), suggested_spa_spectrum.second, temperature); 
 
-          double move_prob = exp(-(suggested_free_energy-free_energy)/temperature);
+          double move_prob = exp(-(suggested_free_energies.second-free_energies.second)/temperature);
           double uniform_rv = ran0(&idum);
 
           if(uniform_rv <= move_prob)
           {
             sigma = suggested_sigma;
-            free_energy = suggested_free_energy;
+            free_energies = suggested_free_energies;
           }
           else
           {
@@ -105,15 +110,17 @@ int main(int argc, char* argv[])
           }
         }
 
-        final_free_energy += free_energy; 
+        final_free_energy_spa += free_energies.first;
+        final_free_energy_rpa += free_energies.second; 
         S_pi += get_spi(sigma);
         cout << "\r sweep = " << sweep << " done."; cout.flush();
       }
 
       outfile_mlength << temperature <<  " " << sigma.col(2).transpose() << endl;
-      outfile_freeenergy << temperature << " " << final_free_energy/double(N_meas) << " " << S_pi/double(N_meas) << endl;
+      outfile_freeenergy << temperature << " " << final_free_energy_spa/double(N_meas) << " " << final_free_energy_rpa/double(N_meas) 
+                        << " " << S_pi/double(N_meas) << endl;
 
-      // cout << "\rtemperature = " << temperature << " done."; cout.flush();
+      cout << "\rtemperature = " << temperature << " done."; cout.flush();
     }
   }
 
