@@ -32,7 +32,7 @@ ofstream nullout;
 
 vector < pair<double,double>> get_fx_list(double temperature, vector <MatrixXd> vt, VectorXd hf, ofstream& fout=nullout)
 {
-	double omega_low = -3.0*hf.maxCoeff();//2*(spa_spectrum.second).minCoeff();
+	double omega_low = 0;//2*(spa_spectrum.second).minCoeff();
 	double omega_high = 3.0*hf.maxCoeff();
 	double OMEGA_STEP = 0.01;
 	vector <pair<double, double>> fx_list;
@@ -41,6 +41,7 @@ vector < pair<double,double>> get_fx_list(double temperature, vector <MatrixXd> 
 		double f_omega = rpa_det(omega, vt, hf, temperature);
 		fx_list.push_back(make_pair(omega,f_omega));
 		fout << omega << " " << f_omega << endl;
+		cout << omega << " done. \r"; cout.flush();
 	}
 	return fx_list;
 }
@@ -137,6 +138,7 @@ int main(int argc, char* argv[])
 
 	MatrixXd sigma = MatrixXd::Zero(L,3);
 	sigma.col(2) = get_field(config_int);
+	cout << "sigma = " << sigma.col(2).transpose() << endl << endl;
   // for(int i=0; i<L; i++) sigma(i,2) = pow(-1,i);
   MatrixXcd H_spa = construct_h0() - U_prime/2*matrixelement_sigmaz(sigma);
   pair<MatrixXcd,VectorXd> spa_spectrum = Eigenspectrum(H_spa);

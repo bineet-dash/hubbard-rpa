@@ -49,6 +49,7 @@
     "type_traits": "cpp",
     "tuple": "cpp",
     "typeinfo": "cpp",
-    "dense": "cpp"
+    "dense": "cpp",
+    "iomanip": "cpp"
   }
 }

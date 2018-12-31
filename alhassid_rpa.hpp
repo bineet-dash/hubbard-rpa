@@ -8,7 +8,6 @@ double rpa_det(double omega, vector <MatrixXd> vt, VectorXd hf, double T)
 {
 	MatrixXd rpa = MatrixXd::Identity(L,L);
 	double mu = get_mu(T, hf);
-
 	for(int alpha=0; alpha<L; alpha++)
 	{
 		for(int alpha_prime=0; alpha_prime<L; alpha_prime++)
@@ -152,8 +151,8 @@ pair<double, double> rpa_free_energy(VectorXd spa_eivals, vector <double> rpa_ro
 		}
 	}
 
-  double pspa_F =  -T*(rpa_part_nom- rpa_part_denom)/L - T*spa_part/L + mu;
-	double spa_F = -T*spa_part/L + mu;
+  double pspa_F =  -T*(rpa_part_nom- rpa_part_denom)- T*spa_part + mu*L;
+	double spa_F = -T*spa_part + mu*L;
 	return make_pair(spa_F, pspa_F);
 }
 

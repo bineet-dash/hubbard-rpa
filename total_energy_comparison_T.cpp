@@ -25,23 +25,23 @@ int main(int argc, char* argv[])
   {
     for(double i=10; i>=2; i-=1)
     {
-			vector <double> spa_F, pspa_F;
-			
 			double temperature = i*pow(10,j);
+			
 			double exp_spa_F = 0.0, exp_pspa_F=0.0;
+			vector <double> spa_F, pspa_F;
 
 			for(int it= i_min; it<= i_max; it++) 
 			{
 				sigma.col(2) = get_field(it);
 				// cout << "config " << it << " " << sigma.col(2).transpose() <<  "\n"; //cout.flush();
-				MatrixXcd H_spa = construct_h0() - U_prime/2*matrixelement_sigmaz(sigma);
+				MatrixXcd H_spa = construct_h0() - U_prime/2*matrixelement_sigmaz(sigma) + U_prime/4*L*MatrixXcd::Identity(2*L,2*L);
 				pair<MatrixXcd,VectorXd> spa_spectrum = Eigenspectrum(H_spa);
 				MatrixXd u = spa_spectrum.first.real();
 				VectorXd spa_eivals = spa_spectrum.second;
 
 				pair <double, double> free_energies= get_free_energy_shortcut(u,spa_eivals,temperature);
-				spa_F.push_back(free_energies.first/L);
-				pspa_F.push_back(free_energies.second/L);
+				spa_F.push_back(free_energies.first);
+				pspa_F.push_back(free_energies.second);
 			}
 			sort(spa_F.begin(),spa_F.end());
 			sort(pspa_F.begin(), pspa_F.end());

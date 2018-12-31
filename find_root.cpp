@@ -71,6 +71,9 @@ int main(int argc, char* argv[])
 	show_time(begin_ms, end_ms, "vt calc ");
 	cout << endl;
 
+	cout << sigma.col(2).transpose() << endl;
+	cout << rpa_det(0.1,vt, spa_eivals, 0.01) << endl;
+
 	vector <double> poles = find_poles(vt, spa_eivals, temperature);
 	end_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
 	show_time(begin_ms, end_ms, "find_poles ");
