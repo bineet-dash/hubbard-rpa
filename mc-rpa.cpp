@@ -9,6 +9,7 @@ int L=4;
 MatrixXd sigma;
 
 using namespace std::chrono;
+using std::cout;
 typedef pair <double,double> pdd;
 
 void greens_sigma_generate(MatrixXd& suggested_sigma, int lattice_index, long & idum)
@@ -40,7 +41,7 @@ int main(int argc, char* argv[])
 
   MatrixXcd H_spa = H0 - U_prime/2*matrixelement_sigmaz(sigma) + U_prime*L/4*Id;
   pair<MatrixXcd,VectorXd> spa_spectrum = Eigenspectrum(H_spa);
-  pdd free_energies = get_free_energy_shortcut(spa_spectrum.first.real(), spa_spectrum.second, final_temp);
+  pdd free_energies = get_spa_pspa_F(spa_spectrum.first.real(), spa_spectrum.second, final_temp);
 
   // cout << spa_spectrum.second.transpose() << endl << free_energies.first << endl; exit(1);
 
@@ -53,75 +54,78 @@ int main(int argc, char* argv[])
   // filename="data/mcdetails"+current_time_str()+latticedata+".txt"; ofstream outfile_mcdetails(filename);
   cout << "==============================\n"<< "filename is: " << filename << "\n========================\n";
 
-  for(int j=final_exp; j>=initial_exp; j--)
+  // for(int j=final_exp; j>=initial_exp; j--)
+  // {
+  //   for(double i=10; i>=2; i-=1)
+  //   {
+  //     double temperature = i*pow(10,j);
+  double decrement = 0.05;
+  for(double temperature = 2.0; temperature >= 0.01; temperature -= decrement)
   {
-    for(double i=10; i>=2; i-=1)
+    decrement = (temperature > 0.9)?  0.05:0.01;
+    for(int sweep=0; sweep<N_therm; sweep++)
     {
-      double temperature = i*pow(10,j);
-      for(int sweep=0; sweep<N_therm; sweep++)
+      for(int lattice_index=0; lattice_index<L; lattice_index++)
       {
-        for(int lattice_index=0; lattice_index<L; lattice_index++)
+        greens_sigma_generate(suggested_sigma,lattice_index, idum);
+        MatrixXcd suggested_Hspa = H0-U_prime/2*matrixelement_sigmaz(suggested_sigma)+ U_prime*L/4*Id;
+        pair<MatrixXcd,VectorXd> suggested_spa_spectrum = Eigenspectrum(suggested_Hspa);
+        pdd suggested_free_energies = get_spa_pspa_F(suggested_spa_spectrum.first.real(), suggested_spa_spectrum.second, temperature); 
+
+        double move_prob = exp(-(suggested_free_energies.second-free_energies.second)/temperature);
+        double uniform_rv = ran0(&idum);
+
+        if(uniform_rv <= move_prob)
         {
-          greens_sigma_generate(suggested_sigma,lattice_index, idum);
-          MatrixXcd suggested_Hspa = H0-U_prime/2*matrixelement_sigmaz(suggested_sigma)+ U_prime*L/4*Id;
-          pair<MatrixXcd,VectorXd> suggested_spa_spectrum = Eigenspectrum(suggested_Hspa);
-          pdd suggested_free_energies = get_free_energy_shortcut(suggested_spa_spectrum.first.real(), suggested_spa_spectrum.second, temperature); 
-
-          double move_prob = exp(-(suggested_free_energies.second-free_energies.second)/temperature);
-          double uniform_rv = ran0(&idum);
-
-          if(uniform_rv <= move_prob)
-          {
-            sigma = suggested_sigma;
-            free_energies = suggested_free_energies;
-          }
-          else
-          {
-            suggested_sigma=sigma;
-          }
+          sigma = suggested_sigma;
+          free_energies = suggested_free_energies;
         }
-        cout << "\r sweep = " << sweep << " done."; cout.flush();
+        else
+        {
+          suggested_sigma=sigma;
+        }
+      }
+      cout << "\r sweep = " << sweep << " done."; cout.flush();
+    }
+
+    double final_free_energy_rpa = 0.0;
+    double final_free_energy_spa = 0.0;
+    double S_pi = 0.0;
+
+    for(int sweep= N_therm; sweep<no_sweeps; sweep++)
+    {
+      for(int lattice_index=0; lattice_index<L; lattice_index++)
+      {
+        greens_sigma_generate(suggested_sigma,lattice_index, idum);
+        MatrixXcd suggested_Hspa = H0-U_prime/2*matrixelement_sigmaz(suggested_sigma)+ U_prime*L/4*Id;
+        pair<MatrixXcd,VectorXd> suggested_spa_spectrum = Eigenspectrum(suggested_Hspa);
+        pdd suggested_free_energies = get_spa_pspa_F(suggested_spa_spectrum.first.real(), suggested_spa_spectrum.second, temperature); 
+
+        double move_prob = exp(-(suggested_free_energies.second-free_energies.second)/temperature);
+        double uniform_rv = ran0(&idum);
+
+        if(uniform_rv <= move_prob)
+        {
+          sigma = suggested_sigma;
+          free_energies = suggested_free_energies;
+        }
+        else
+        {
+          suggested_sigma=sigma;
+        }
       }
 
-      double final_free_energy_rpa = 0.0;
-      double final_free_energy_spa = 0.0;
-      double S_pi = 0.0;
+      final_free_energy_spa += free_energies.first;
+      final_free_energy_rpa += free_energies.second; 
+      S_pi += get_spi(sigma);
+      cout << "\r sweep = " << sweep << " done."; cout.flush();
+    }
 
-      for(int sweep= N_therm; sweep<no_sweeps; sweep++)
-      {
-        for(int lattice_index=0; lattice_index<L; lattice_index++)
-        {
-          greens_sigma_generate(suggested_sigma,lattice_index, idum);
-          MatrixXcd suggested_Hspa = H0-U_prime/2*matrixelement_sigmaz(suggested_sigma)+ U_prime*L/4*Id;
-          pair<MatrixXcd,VectorXd> suggested_spa_spectrum = Eigenspectrum(suggested_Hspa);
-          pdd suggested_free_energies = get_free_energy_shortcut(suggested_spa_spectrum.first.real(), suggested_spa_spectrum.second, temperature); 
-
-          double move_prob = exp(-(suggested_free_energies.second-free_energies.second)/temperature);
-          double uniform_rv = ran0(&idum);
-
-          if(uniform_rv <= move_prob)
-          {
-            sigma = suggested_sigma;
-            free_energies = suggested_free_energies;
-          }
-          else
-          {
-            suggested_sigma=sigma;
-          }
-        }
-
-        final_free_energy_spa += free_energies.first;
-        final_free_energy_rpa += free_energies.second; 
-        S_pi += get_spi(sigma);
-        cout << "\r sweep = " << sweep << " done."; cout.flush();
-      }
-
-      outfile_mlength << temperature <<  " " << sigma.col(2).transpose() << endl;
-      outfile_freeenergy << temperature << " " << final_free_energy_spa/double(N_meas) << " " << final_free_energy_rpa/double(N_meas) 
+    outfile_mlength << temperature <<  " " << sigma.col(2).transpose() << endl;
+    outfile_freeenergy << temperature << " " << final_free_energy_spa/double(N_meas) << " " << final_free_energy_rpa/double(N_meas) 
                         << " " << S_pi/double(N_meas) << endl;
 
-      cout << "\rtemperature = " << temperature << " done."; cout.flush();
-    }
+    cout << "\rtemperature = " << temperature << " done."; cout.flush();
   }
 
   cout << endl;

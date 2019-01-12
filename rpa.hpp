@@ -25,7 +25,7 @@ inline double Sqr(double x){return x*x;}
 inline double gs_energy(VectorXd hf_eivals) {return hf_eivals.block(0,0,hf_eivals.size()/2,1).sum();}
 inline double gs_energy(vector<double> v) {return accumulate(v.begin(), v.begin()+v.size()/2, 0.00);}
 inline cd filter_cd(cd x){return (abs(x)<1e-4)?0.0:x;}
-inline double filter_d(double x) {return (abs(x)<1e-6)?0.0:x;}
+inline double filter_d(double x) {return (abs(x)<1e-4)?0.0:x;}
 inline double filter_tol_d(double x, double tolerance=1e-4) {return (abs(x)<tolerance)?0.0:x;}
 inline double fermi_fn(double e_minus_mu, double T) {return (isinf(exp(e_minus_mu/T)))? 0: 1/(exp(e_minus_mu/T)+1);}
 
@@ -234,18 +234,16 @@ double get_mu(double temperature, VectorXd v)
   return get_mu(temperature, stdv);
 }
 
-double spa_free_energy(VectorXd spa_eivals, double temperature)
+double spa_free_energy(Eigen::VectorXd spa_eivals, double T)
 {
-  double free_energy = 0; double ekt =0;
-  double mu = get_mu(temperature, spa_eivals);
-
-  for(auto it=0; it!= spa_eivals.size(); it++)
+  double mu = get_mu(T, spa_eivals);
+  double beta = 1/T;
+  double spa_F = 0.0;
+  for(int i=0; i<spa_eivals.size(); i++)
   {
-    ekt = (spa_eivals[it]-mu)/temperature;
-    if(!isinf(exp(-ekt))) free_energy += -temperature*log(1+exp(-ekt));
-    else  free_energy += (spa_eivals[it]-mu);
+    spa_F += (-beta*(spa_eivals(i)-mu) > 4.0)?  (spa_eivals(i)-mu):-T*log(1+exp(-beta*(spa_eivals(i)-mu)));
   }
-  return free_energy/L+mu;
+  return spa_F/L+mu;
 }
 
 

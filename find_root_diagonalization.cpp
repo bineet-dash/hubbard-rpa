@@ -49,6 +49,25 @@ double U_prime=2;
 int L=4;
 
 milliseconds begin_ms, end_ms;
+vector <double> find_diff(VectorXd first, VectorXd second)
+{
+	vector<double> first_vec(first.data(), first.data() + first.size());
+	vector<double> second_vec(second.data(), second.data() + second.size());
+
+	vector<double>::iterator ls;
+	vector <double> diff;
+	ls = set_difference(first_vec.begin(), first_vec.end(), second_vec.begin(), second_vec.end(), diff.begin());
+	return diff;
+}
+
+vector <double> find_diff(vector <double> first_vec, VectorXd second)
+{
+	vector<double> second_vec(second.data(), second.data() + second.size());
+	vector<double>::iterator ls;
+	vector <double> diff;
+	ls = set_difference(first_vec.begin(), first_vec.end(), second_vec.begin(), second_vec.end(), diff.begin());
+	return diff;
+}
 
 double u_iljk(vector <MatrixXd> vt, int i, int l, int j, int k)
 {
@@ -185,7 +204,11 @@ int main(int argc, char* argv[])
 		sort(delta.begin(), delta.end());
 	}
 	cout << endl << "delta_ij = " << endl;
-	for(const auto& i:delta) cout << i << " "; cout << endl;
+	for(const auto& i:delta)
+	{
+		if(i >= 0)	cout << i << " "; 
+	} 
+	cout << endl;
 
 
 	MatrixXcd rpa_u = MatrixXcd::Zero(2*L*L, 2*L*L);
@@ -237,15 +260,16 @@ int main(int argc, char* argv[])
 
 	MatrixXcd rpa_old = rpa_u + rpa_del_ij;
 	// cout << endl << rpa_u.unaryExpr(&filter_cd).real() << endl << endl;
-	cout << "old eivals: " << endl;
+	cout << "diagonalized RPA eivals: " << endl;
 	cout << Eigenvalues(rpa_old).block(L*L,0,L*L,1).unaryExpr(&filter_d).transpose() << endl;
 
-	VectorXd raw_eivals = Eigenvalues(rpa_old).transpose();
+	VectorXd raw_eivals = Eigenvalues(rpa_old);
 	MatrixXcd xi_eivec = Eigenvectors(rpa_old);
 	// cout << xi_eivec.real().unaryExpr(&filter_d) << endl << endl;
 
 	// cout << "Analysis\n===============\n";
 
+	vector <double> processed_eivals;
 	for(int it=0; it<raw_eivals.size(); it++)
 	{
 		double Omega = raw_eivals(it);
@@ -260,7 +284,7 @@ int main(int argc, char* argv[])
 			else
 			{
 				// cout << "= del_ij for it2 = " << it2 << ",  i = " << it2%L << ", j = " << it2/L << endl; 
-				if(rpa_old.row(it2).dot(xi_eivec.col(it2))== rpa_old(it2,it2)*xi_eivec(it2,it2)) 
+				if(rpa_u.row(it2).dot(xi_eivec.col(it2))==cd(0,0)) 
 				{
 					delet*= 1;	
 				}
@@ -276,7 +300,15 @@ int main(int argc, char* argv[])
 		}
 	}
 	 
-	cout << endl << "processed eivals = " << endl << raw_eivals.transpose() << endl << endl;
+	cout << endl << "processed eivals = " << endl;
+	cout << raw_eivals.transpose() << endl << endl;
+	// for(auto i: processed_eivals)
+	// {
+	// 	if(i>0)	cout << i << " ";
+	// } 
+	// cout << endl << endl;
+
+	// vector <double> poles_diag  = find_diff(delta,raw_eivals);
 
 	// pair <double, double> free_energies= rpa_free_energy(spa_spectrum.second, roots, poles, temperature);
 	// cout << temperature << " " << free_energies.first/L << " " << free_energies.second/L << endl;

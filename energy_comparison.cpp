@@ -1,8 +1,8 @@
 #include "alhassid_rpa.hpp"
 
 double t=1;
-double U_prime=2;
-int L=4;
+double U_prime;
+int L;
 
 int main(int argc, char* argv[])
 {
@@ -26,14 +26,17 @@ int main(int argc, char* argv[])
 	pair<MatrixXcd,VectorXd> spa_spectrum = Eigenspectrum(H_spa);
 	MatrixXd u = spa_spectrum.first.real();
 	VectorXd spa_eivals = spa_spectrum.second;
+	cout << spa_eivals.transpose() << endl;
 
 	for(int j=final_exp; j>=initial_exp; j--)
   {
     for(double i=10; i>=2; i-=1)
     {
 			double temperature = i*pow(10,j);
-			pair <double, double> free_energies= get_free_energy_shortcut(u,spa_eivals,temperature);
-			dataout << temperature << " " << free_energies.first << " " << free_energies.second << endl;
+			double spa_F =  spa_free_energy(spa_eivals, temperature);
+			double pspa_F = spa_F + get_pspa_F(u, spa_eivals, temperature)/L;
+			dataout << temperature << " " << spa_F << " " << pspa_F << " ";
+			dataout << get_free_energy_shortcut(u, spa_eivals, temperature).first << " " << get_free_energy_shortcut(u, spa_eivals, temperature).second << endl;
 			std::cout << temperature << " done!" << "\r"; cout.flush();
 		}
 	}
