@@ -1,4 +1,4 @@
-#include "alhassid_rpa.hpp"
+#include "alhassid_parallel.hpp"
 #include <cstring>
 #include <chrono>
 #include <cstdlib>
@@ -39,11 +39,23 @@ int main(int argc, char* argv[])
   MatrixXcd H0 = construct_h0();
   MatrixXcd Id = MatrixXcd::Identity(2*L,2*L);
 
+  MPI_Init(NULL, NULL);
+
   MatrixXcd H_spa = H0 - U_prime/2*matrixelement_sigmaz(sigma) + U_prime*L/4*Id;
   pair<MatrixXcd,VectorXd> spa_spectrum = Eigenspectrum(H_spa);
-  pdd free_energies = get_spa_pspa_F(spa_spectrum.first.real(), spa_spectrum.second, final_temp);
 
-  // cout << spa_spectrum.second.transpose() << endl << free_energies.first << endl; exit(1);
+	int process_rank;
+	MPI_Comm_rank(MPI_COMM_WORLD, &process_rank);
+	if(process_rank==0)
+	{
+    begin_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+		double pspa_f = get_pspa_F(u,spa_eivals, temperature);
+		end_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+		cout << pspa_f << endl;
+		cout << (end_ms-begin_ms).count() << " miliseconds" << endl << endl;
+	}
+
+	double pspa_f_parallel = get_parallel_pspa_F(u, spa_eivals, temperature);
 
   string filename, latticedata;
   latticedata = "_U="+to_string(int(U_prime))+"_size="+to_string(L)+"_sweeps="+to_string(no_sweeps);
@@ -60,7 +72,7 @@ int main(int argc, char* argv[])
   //   {
   //     double temperature = i*pow(10,j);
   double decrement = 0.05;
-  for(double temperature = 1.1; temperature >= 0.009; temperature -= decrement)
+  for(double temperature = 2.0; temperature >= 0.01; temperature -= decrement)
   {
     decrement = (temperature > 0.9)?  0.05:0.01;
     for(int sweep=0; sweep<N_therm; sweep++)

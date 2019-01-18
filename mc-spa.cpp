@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
   latticedata = "_U="+to_string(int(U_prime))+"_size="+to_string(L)+"_sweeps="+to_string(no_sweeps);
   // filename="data/spin_arrangement"+current_time_str()+latticedata+".nb"; ofstream outfile_spinarr(filename);
   // spinarrangement_Mathematica_output(sigma,outfile_spinarr);
-  filename="spa/m_length_spa_"+ current_time_str()+latticedata+".dat"; ofstream outfile_mlength(filename);
+  filename="spa/m_length_spa_"+ current_time_str()+latticedata+".dat"; ofstream outfile_mlength;//(filename);
   filename="spa/spa_results_"+current_time_str()+latticedata+".dat"; ofstream outfile_results(filename);
   // filename="data/mcdetails"+current_time_str()+latticedata+".txt"; ofstream outfile_mcdetails(filename);
   cout << "==============================\n"<< "filename is: " << filename << "\n========================\n";

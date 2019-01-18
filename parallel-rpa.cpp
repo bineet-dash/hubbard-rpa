@@ -40,11 +40,14 @@ int main(int argc, char* argv[])
 		cout << (end_ms-begin_ms).count() << " miliseconds" << endl << endl;
 	}
 
-	double pspa_f_parallel = get_parallel_pspa_F(u, spa_eivals, temperature);
-  	
+	begin_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+	double pspa_f_parallel = get_pspa_F(u,spa_eivals, temperature);
+	end_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+
 	if(process_rank==0)
 	{
 		cout << "pspa_F " <<  pspa_f_parallel << endl;
+		cout << (end_ms-begin_ms).count() << " miliseconds" << endl << endl;
 	}	
 		
 
